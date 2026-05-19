@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerador de Receitas - Chef Gemini</title>
+    <!-- Importando o Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,400&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+        .font-serif { font-family: 'Playfair+Display', Georgia, serif; }
+        .font-sans { font-family: 'Plus Jakarta Sans', sans-serif; }
+    </style>
+</head>
+<!-- Fundo em tom creme/pedra quente para lembrar ambiente de culinária -->
+<body class="bg-stone-50 min-h-screen font-sans flex flex-col justify-between antialiased text-stone-800">
+
+    <div>
+        <!-- Header com degradê que lembra ingredientes frescos (manjericão e oliva) -->
+        <header class="bg-gradient-to-r from-emerald-700 to-emerald-600 text-white py-10 shadow-md text-center relative overflow-hidden">
+            <div class="absolute inset-0 opacity-10 bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:16px_16px]"></div>
+            <div class="relative z-10">
+                <h1 class="text-4xl md:text-5xl font-serif font-bold tracking-wide flex items-center justify-center gap-3">
+                    🍳 Chef Gemini
+                </h1>
+                <p class="text-emerald-100 text-sm md:text-base mt-2 font-medium max-w-md mx-auto px-4">
+                    O que tem na sua geladeira? Insira os ingredientes e nós criamos a mágica!
+                </p>
+            </div>
+        </header>
+
+        <main class="max-w-2xl mx-auto p-4 mt-8">
+            
+            <!-- Formulário de Ingredientes -->
+            <div class="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-stone-100 relative">
+                <div class="absolute -top-3 left-6 bg-orange-500 text-white text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-full shadow-sm">
+                    Despensa
+                </div>
+                <h2 class="text-xl font-serif font-bold text-stone-800 mb-5 mt-2">Quais ingredientes você tem aí?</h2>
+                
+                <form id="recipe-form" onsubmit="gerarReceita(event)">
+                    <!-- Container onde os inputs ficarão -->
+                    <div id="inputs-container" class="space-y-3.5">
+                        <div class="relative group">
+                            <input type="text" placeholder="Ex: Peito de frango" required class="ingrediente-input w-full pl-4 pr-4 py-3 bg-stone-50/50 border border-stone-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:bg-white focus:outline-none transition-all placeholder:text-stone-400">
+                        </div>
+                        <div class="relative group">
+                            <input type="text" placeholder="Ex: Creme de leite" required class="ingrediente-input w-full pl-4 pr-4 py-3 bg-stone-50/50 border border-stone-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:bg-white focus:outline-none transition-all placeholder:text-stone-400">
+                        </div>
+                        <div class="relative group">
+                            <input type="text" placeholder="Ex: Batata" required class="ingrediente-input w-full pl-4 pr-4 py-3 bg-stone-50/50 border border-stone-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:bg-white focus:outline-none transition-all placeholder:text-stone-400">
+                        </div>
+                    </div>
+
+                    <!-- Botão para adicionar mais inputs -->
+                    <button type="button" onclick="adicionarInput()" class="mt-4 text-sm text-emerald-600 hover:text-emerald-700 font-semibold flex items-center gap-1.5 transition-colors group">
+                        <span class="bg-emerald-50 text-emerald-600 group-hover:bg-emerald-100 p-1.5 rounded-lg text-xs transition-colors">➕</span> 
+                        Adicionar outro ingrediente
+                    </button>
+
+                    <!-- Botões de Ação -->
+                    <div class="mt-8 flex flex-col sm:flex-row gap-3">
+                        <button type="submit" id="btn-enviar" class="flex-1 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-semibold py-3.5 px-6 rounded-xl shadow-md shadow-orange-500/10 hover:shadow-lg transition duration-200 flex justify-center items-center gap-2">
+                            <span>✨ Criar Receita Gourmet</span>
+                            <!-- Ícone de Loading -->
+                            <div id="loading-spinner" class="hidden w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        </button>
+                        
+                        <button type="button" onclick="reiniciarFormulario()" class="bg-stone-100 hover:bg-stone-200 text-stone-600 font-medium py-3.5 px-6 rounded-xl transition duration-200">
+                            Limpar tudo
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Container de Erro -->
+            <div id="error-message" class="hidden mt-4 p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl text-sm font-medium flex items-center gap-2">
+                ⚠️ <span id="error-text"></span>
+            </div>
+
+            <!-- Seção do Resultado da Receita (Estilo Caderno de Notas) -->
+            <div id="resultado-container" class="hidden mt-8 bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-stone-100 mb-12 relative overflow-hidden">
+                <div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-emerald-600 to-orange-500"></div>
+                
+                <h2 id="rec-titulo" class="text-3xl font-serif font-bold text-stone-800 mb-3 mt-2 leading-tight"></h2>
+                
+                <div class="flex flex-wrap gap-4 text-sm font-medium text-stone-600 mb-8 bg-stone-50 p-3.5 rounded-xl border border-stone-100">
+                    <p class="flex items-center gap-1.5 text-emerald-700">⏱️ <strong class="text-stone-700">Tempo:</strong> <span id="rec-tempo" class="font-normal text-stone-600"></span></p>
+                    <div class="w-px h-4 bg-stone-300 self-center hidden sm:block"></div>
+                    <p class="flex items-center gap-1.5 text-orange-600">🍽️ <strong class="text-stone-700">Rendimento:</strong> <span id="rec-porcoes" class="font-normal text-stone-600"></span></p>
+                </div>
+
+                <div class="mb-8">
+                    <h3 class="text-lg font-serif font-bold text-stone-800 flex items-center gap-2 mb-3">
+                        <span class="text-emerald-600 text-xl">✔</span> 📋 Lista de Ingredientes
+                    </h3>
+                    <ul id="rec-ingredientes" class="space-y-2 text-stone-600 pl-2">
+                        <!-- Estilizado dinamicamente via JS -->
+                    </ul>
+                </div>
+
+                <div>
+                    <h3 class="text-lg font-serif font-bold text-stone-800 flex items-center gap-2 mb-4">
+                        <span class="text-orange-500 text-xl">🍳</span> 👨‍🍳 Modo de Preparo
+                    </h3>
+                    <ol id="rec-preparo" class="space-y-4 text-stone-600 list-none counter-reset-preparo">
+                        <!-- Estilizado dinamicamente via JS -->
+                    </ol>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- Rodapé (Footer) -->
+    <footer class="bg-stone-900 text-stone-400 py-8 mt-12 border-t border-stone-800 text-center text-sm">
+        <div class="max-w-2xl mx-auto px-4 space-y-2">
+            <p class="font-semibold text-stone-300">© Gerador de Receitas com IA - Google Gemini</p>
+            <p class="text-xs text-stone-500 max-w-md mx-auto leading-relaxed">
+                ⚠️ Como qualquer inteligência artificial, o Gemini pode sugerir proporções incorretas. Use o bom senso culinário antes de acender o fogão!
+            </p>
+        </div>
+    </footer>
+
+    <!-- JavaScript Lógico -->
+    <script>
+        const API_URL = "https://geradoria-backend.vercel.app/generate"; 
+
+        const containerInputs = document.getElementById('inputs-container');
+        const spinner = document.getElementById('loading-spinner');
+        const btnEnviar = document.getElementById('btn-enviar');
+        const resultadoContainer = document.getElementById('resultado-container');
+        const errorContainer = document.getElementById('error-message');
+
+        function adicionarInput() {
+            const totalInputs = containerInputs.querySelectorAll('.ingrediente-input').length + 1;
+            
+            const wrapper = document.createElement('div');
+            wrapper.className = 'flex gap-2 items-center transition-all duration-300 transform scale-95 opacity-0 animate-[fadeIn_0.2s_ease-out_forwards]';
+            
+            const novoInput = document.createElement('input');
+            novoInput.type = 'text';
+            novoInput.placeholder = `Ingrediente ${totalInputs}`;
+            novoInput.className = 'ingrediente-input w-full pl-4 pr-4 py-3 bg-stone-50/50 border border-stone-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:bg-white focus:outline-none transition-all placeholder:text-stone-400';
+            
+            const btnDeletar = document.createElement('button');
+            btnDeletar.type = 'button';
+            btnDeletar.innerHTML = '✕';
+            btnDeletar.className = 'bg-red-50 hover:bg-red-100 text-red-500 font-bold w-12 h-12 rounded-xl transition duration-150 flex items-center justify-center shrink-0 border border-red-100';
+            
+            btnDeletar.onclick = function() {
+                wrapper.remove();
+                reorganizarPlaceholders();
+            };
+            
+            wrapper.appendChild(novoInput);
+            wrapper.appendChild(btnDeletar);
+            containerInputs.appendChild(wrapper);
+        }
+
+        function reorganizarPlaceholders() {
+            const inputs = containerInputs.querySelectorAll('.ingrediente-input');
+            inputs.forEach((input, index) => {
+                input.placeholder = `Ingrediente ${index + 1}`;
+            });
+        }
+
+        async function gerarReceita(event) {
+            event.preventDefault(); 
+            
+            const inputs = document.querySelectorAll('.ingrediente-input');
+            const listaIngredientes = Array.from(inputs)
+                                           .map(i => i.value.trim())
+                                           .filter(valor => valor !== "");
+
+            errorContainer.classList.add('hidden');
+            resultadoContainer.classList.add('hidden');
+            
+            spinner.classList.remove('hidden');
+            btnEnviar.disabled = true;
+            btnEnviar.classList.add('opacity-75');
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ ingredientes: listaIngredientes })
+                });
+
+                const data = await response.json();
+
+                if (data.status === "success") {
+                    exibirReceita(data.dados_receita);
+                } else {
+                    mostrarErro(data.message || "Ocorreu um erro ao processar a requisição.");
+                }
+
+            } catch (error) {
+                mostrarErro("Não foi possível conectar à API. Verifique se o servidor está rodando ou se a URL da Vercel está correta.");
+            } finally {
+                spinner.classList.add('hidden');
+                btnEnviar.disabled = false;
+                btnEnviar.classList.remove('opacity-75');
+            }
+        }
+
+        function exibirReceita(receita) {
+            document.getElementById('rec-titulo').innerText = receita.nome_da_receita;
+            document.getElementById('rec-tempo').innerText = receita.tempo_de_preparo;
+            document.getElementById('rec-porcoes').innerText = receita.porcoes;
+
+            const ulIngredientes = document.getElementById('rec-ingredientes');
+            ulIngredientes.innerHTML = "";
+            receita.ingredientes.forEach(ing => {
+                const li = document.createElement('li');
+                li.className = "flex items-start gap-2 py-1 border-b border-dashed border-stone-100 last:border-0";
+                li.innerHTML = `<span class="text-emerald-600 select-none">•</span> <span>${ing}</span>`;
+                ulIngredientes.appendChild(li);
+            });
+
+            const olPreparo = document.getElementById('rec-preparo');
+            olPreparo.innerHTML = "";
+            receita.modo_de_preparo.forEach((passo, index) => {
+                const li = document.createElement('li');
+                li.className = "flex gap-4 p-3 bg-stone-50 rounded-xl border border-stone-100";
+                li.innerHTML = `
+                    <span class="flex items-center justify-center bg-orange-100 text-orange-700 font-bold rounded-lg w-7 h-7 text-xs shrink-0 mt-0.5">
+                        ${index + 1}
+                    </span>
+                    <p class="text-stone-700 leading-relaxed">${passo}</p>
+                `;
+                olPreparo.appendChild(li);
+            });
+
+            resultadoContainer.classList.remove('hidden');
+            resultadoContainer.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function mostrarErro(mensagem) {
+            document.getElementById('error-text').innerText = mensagem;
+            errorContainer.classList.remove('hidden');
+        }
+
+        function reiniciarFormulario() {
+            containerInputs.innerHTML = `
+                <input type="text" placeholder="Ingrediente 1" required class="ingrediente-input w-full pl-4 pr-4 py-3 bg-stone-50/50 border border-stone-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:bg-white focus:outline-none transition-all placeholder:text-stone-400">
+                <input type="text" placeholder="Ingrediente 2" required class="ingrediente-input w-full pl-4 pr-4 py-3 bg-stone-50/50 border border-stone-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:bg-white focus:outline-none transition-all placeholder:text-stone-400">
+                <input type="text" placeholder="Ingrediente 3" required class="ingrediente-input w-full pl-4 pr-4 py-3 bg-stone-50/50 border border-stone-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:bg-white focus:outline-none transition-all placeholder:text-stone-400">
+            `;
+            resultadoContainer.classList.add('hidden');
+            errorContainer.classList.add('hidden');
+        }
+    </script>
+
+    <!-- Estilo Inline extra para animação de fade suave -->
+    <style>
+        @keyframes fadeIn {
+            to { opacity: 1; transform: scale(1); }
+        }
+    </style>
+</body>
+</html>
